@@ -1,4 +1,4 @@
-From b4be3a28199d1bdb598b0f2b069b28a48bdb60c7 Mon Sep 17 00:00:00 2001
+From 550064f09018aa9f038aac7b057ac13bb8ed6812 Mon Sep 17 00:00:00 2001
 From: Vitaly Kuznetsov <vkuznets@redhat.com>
 Date: Sun, 29 Oct 2017 12:21:00 -0700
 Subject: [PATCH 02/21] hyper-v: trace vmbus_on_msg_dpc()
@@ -81,7 +81,7 @@ index 000000000000..9c2772922c76
 +/* This part must be outside protection */
 +#include <trace/define_trace.h>
 diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
-index 49569f8fe038..82eb082f3302 100644
+index a166de6efd99..02f13e803a8b 100644
 --- a/drivers/hv/hyperv_vmbus.h
 +++ b/drivers/hv/hyperv_vmbus.h
 @@ -31,6 +31,8 @@
@@ -94,10 +94,10 @@ index 49569f8fe038..82eb082f3302 100644
   * Timeout for services such as KVP and fcopy.
   */
 diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 2cd134dd94d2..9687e462fd43 100644
+index 1fd812ed679b..70f857441399 100644
 --- a/drivers/hv/vmbus_drv.c
 +++ b/drivers/hv/vmbus_drv.c
-@@ -833,6 +833,8 @@ void vmbus_on_msg_dpc(unsigned long data)
+@@ -884,6 +884,8 @@ void vmbus_on_msg_dpc(unsigned long data)
  
  	hdr = (struct vmbus_channel_message_header *)msg->u.payload;
  
@@ -107,5 +107,5 @@ index 2cd134dd94d2..9687e462fd43 100644
  		WARN_ONCE(1, "unknown msgtype=%d\n", hdr->msgtype);
  		goto msg_handled;
 -- 
-2.16.0
+2.21.0
 

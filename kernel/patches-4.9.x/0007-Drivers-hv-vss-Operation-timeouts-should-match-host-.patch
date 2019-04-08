@@ -1,7 +1,7 @@
-From 45feaf0263114dd7a7127d9f728f9b6f1085308d Mon Sep 17 00:00:00 2001
+From 6039af86b5be56114451ce388b4a1974d0f3d75a Mon Sep 17 00:00:00 2001
 From: Alex Ng <alexng@messages.microsoft.com>
 Date: Sun, 6 Nov 2016 13:14:11 -0800
-Subject: [PATCH 07/12] Drivers: hv: vss: Operation timeouts should match host
+Subject: [PATCH 07/14] Drivers: hv: vss: Operation timeouts should match host
  expectation
 
 Increase the timeout of backup operations. When system is under I/O load,
@@ -44,5 +44,5 @@ index 5c95ba1e2ecf..eee238cc60bd 100644
  	rc = hvutil_transport_send(hvt, vss_msg, sizeof(*vss_msg), NULL);
  	if (rc) {
 -- 
-2.16.0
+2.21.0
 

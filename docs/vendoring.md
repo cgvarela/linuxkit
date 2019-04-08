@@ -13,12 +13,6 @@ Details of usage of the `vndr` tool and the format of `vendor.conf` can be found
 Once done, you must run the `vndr` tool to add the necessary files to the `vendor` directory.
 The easiest way to do this is in a container.
 
-Currently if updating `github.com/moby/tool` it is also necessary to
-update `src/cmd/linuxkit/build.go` manually after updating `vendor.conf`:
-
-    hash=$(awk '/^github.com\/moby\/tool/ { print $2 }' src/cmd/linuxkit/vendor.conf)
-    curl -fsSL -o src/cmd/linuxkit/build.go https://raw.githubusercontent.com/moby/tool/${hash}/cmd/moby/build.go
-
 ## Updating in a container
 
 To update all dependencies:
@@ -28,7 +22,7 @@ docker run -it --rm \
 -v $(pwd):/go/src/github.com/linuxkit/linuxkit \
 -w /go/src/github.com/linuxkit/linuxkit/src/cmd/linuxkit \
 --entrypoint /go/bin/vndr \
-linuxkit/go-compile:a8bffe875268a973ea82e5937b0fb23a5b08cc79
+linuxkit/go-compile:0a927ab41060951b15645f0f9cc257ec810c0a0f
 ```
 
 To update a single dependency:
@@ -38,7 +32,7 @@ docker run -it --rm \
 -v $(pwd):/go/src/github.com/linuxkit/linuxkit \
 -w /go/src/github.com/linuxkit/linuxkit/src/cmd/linuxkit \
 --entrypoint /go/bin/vndr \
-linuxkit/go-compile:a8bffe875268a973ea82e5937b0fb23a5b08cc79
+linuxkit/go-compile:0a927ab41060951b15645f0f9cc257ec810c0a0f
 github.com/docker/docker
 ```
 

@@ -1,25 +1,25 @@
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS mirror
+FROM linuxkit/alpine:5ce235f4fb55772e7f78871a70bfe26f774fe2b0 AS mirror
 RUN mkdir -p /out/etc/apk && cp -r /etc/apk/* /out/etc/apk/
 RUN apk add --no-cache --initdb -p /out \
     tini
 RUN rm -rf /out/etc/apk /out/lib/apk /out/var/cache
 
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS build
+FROM linuxkit/alpine:5ce235f4fb55772e7f78871a70bfe26f774fe2b0 AS build
 
 RUN apk add --no-cache go musl-dev git make
 ENV GOPATH=/go PATH=$PATH:/go/bin
 
-ENV VIRTSOCK_COMMIT=3bfdf22e3b63a7d130ae5db41c2d76eaffa444d4
-RUN mkdir -p $GOPATH/src/github.com/rneugeba && \
-  cd $GOPATH/src/github.com/rneugeba && \
-  git clone https://github.com/rneugeba/virtsock.git
-WORKDIR $GOPATH/src/github.com/rneugeba/virtsock
+ENV VIRTSOCK_COMMIT=f1e32d3189e0dbb81c0e752a4e214617487eb41f
+RUN mkdir -p $GOPATH/src/github.com/linuxkit && \
+  cd $GOPATH/src/github.com/linuxkit && \
+  git clone https://github.com/linuxkit/virtsock.git
+WORKDIR $GOPATH/src/github.com/linuxkit/virtsock
 RUN git checkout $VIRTSOCK_COMMIT
 # Don't use go-compile.sh quite yet as the virtsock package is not yet lint free
-RUN make build/virtsock_stress.linux && \
-    cp -a build/virtsock_stress.linux /virtsock_stress
+RUN make bin/sock_stress.linux && \
+    cp -a bin/sock_stress.linux /sock_stress
 
 FROM scratch
 COPY --from=mirror /out/ /
-COPY --from=build virtsock_stress usr/bin/virtsock_stress
-CMD ["/sbin/tini", "/usr/bin/virtsock_stress", "-s", "-v", "1"]
+COPY --from=build sock_stress usr/bin/sock_stress
+CMD ["/sbin/tini", "/usr/bin/sock_stress", "-s", "-v", "1"]

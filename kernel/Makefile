@@ -15,6 +15,7 @@
 # Name and Org on Hub
 ORG?=linuxkit
 IMAGE:=kernel
+IMAGE_BCC:=kernel-bcc
 IMAGE_PERF:=kernel-perf
 IMAGE_ZFS:=zfs-kmod
 
@@ -71,17 +72,12 @@ endif
 
 KERNEL_VERSIONS=
 
-.PHONY: fetch build push
+.PHONY: build push
 # Targets:
-# fetch: Downloads the kernel sources into ./sources
 # build: Builds all kernels
 # push:  Pushes and sign all tagged kernel images to hub
-fetch:
 build:
 push:
-
-sources:
-	mkdir -p $@
 
 # A template for defining kernel build
 # Arguments:
@@ -99,8 +95,6 @@ sources:
 define kernel
 
 ifeq ($(4),)
-sources/linux-$(1).tar.xz: Makefile | sources
-	curl -fsSLo sources/linux-$(1).tar.xz https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(1).tar.xz 
 KERNEL_VERSIONS+=$(1)
 endif
 
@@ -148,7 +142,6 @@ forcebuild: forcebuild_$(2)$(3)$(4)
 push: push_$(2)$(3)$(4)
 forcepush: forcepush_$(2)$(3)$(4)
 show-tags: show-tag_$(2)$(3)$(4)
-fetch: sources/linux-$(1).tar.xz
 
 # 'docker build' with the FROM image supplied as --build-arg
 # *and* with DOCKER_CONTENT_TRUST=1 currently does not work
@@ -156,8 +149,9 @@ fetch: sources/linux-$(1).tar.xz
 # with DCT as part of the dependency on build_$(2)$(3)$(4) and then build
 # with DOCKER_CONTENT_TRUST explicitly set to 0
 
-ifneq ($(2), $(filter $(2),4.4.x 4.9.x))
-# perf does not build out of the box for 4.4.x and 4.9.x
+# Skip perf build for now. See:
+# https://github.com/linuxkit/linuxkit/issues/3299
+ifeq ($(ARCH),SKIP)
 build_perf_$(2)$(3)$(4): build_$(2)$(3)$(4)
 	docker pull $(ORG)/$(IMAGE_PERF):$(1)$(3)$(4)-$(TAG)$(SUFFIX) || \
 		 DOCKER_CONTENT_TRUST=0 docker build -f Dockerfile.perf \
@@ -192,6 +186,45 @@ push: push_perf_$(2)$(3)$(4)
 forcepush: forcepush_perf_$(2)$(3)$(4)
 endif
 
+# Only build BCC on x86 and only on latest LTS and latest stable kernels.
+ifeq ($(ARCH),x86_64)
+ifneq ($(2), $(filter $(2),4.9.x))
+build_bcc_$(2)$(3)$(4): build_$(2)$(3)$(4)
+	docker pull $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) || \
+		 DOCKER_CONTENT_TRUST=0 docker build -f Dockerfile.bcc \
+			--build-arg IMAGE=$(ORG)/$(IMAGE):$(1)$(3)$(4)-$(TAG)$(SUFFIX) \
+			--no-cache $(LABEL) -t $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) .
+
+forcebuild_bcc_$(2)$(3)$(4): build_$(2)$(3)$(4)
+	 DOCKER_CONTENT_TRUST=0 docker build -f Dockerfile.bcc \
+		--build-arg IMAGE=$(ORG)/$(IMAGE):$(1)$(3)$(4)-$(TAG)$(SUFFIX) \
+		--no-cache $(LABEL) -t $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) .
+
+push_bcc_$(2)$(3)$(4): build_bcc_$(2)$(3)$(4)
+	@if [ x"$(DIRTY)" != x ]; then echo "Your repository is not clean. Will not push image"; exit 1; fi
+	docker pull $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) || \
+		(docker push $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) && \
+		 docker tag $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)$(SUFFIX) && \
+		 docker push $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)$(SUFFIX) && \
+		 $(PUSH_MANIFEST) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG) $(DOCKER_CONTENT_TRUST) && \
+		 $(PUSH_MANIFEST) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4) $(DOCKER_CONTENT_TRUST))
+
+forcepush_bcc_$(2)$(3)$(4): forcebuild_bcc_$(2)$(3)$(4)
+	@if [ x"$(DIRTY)" != x ]; then echo "Your repository is not clean. Will not push image"; exit 1; fi
+	docker push $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) && \
+	docker tag $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG)$(SUFFIX) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)$(SUFFIX) && \
+	docker push $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)$(SUFFIX) && \
+	$(PUSH_MANIFEST) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4)-$(TAG) $(DOCKER_CONTENT_TRUST) && \
+	$(PUSH_MANIFEST) $(ORG)/$(IMAGE_BCC):$(1)$(3)$(4) $(DOCKER_CONTENT_TRUST)
+
+
+build: build_bcc_$(2)$(3)$(4)
+forcebuild: forcebuild_bcc_$(2)$(3)$(4)
+push: push_bcc_$(2)$(3)$(4)
+forcepush: forcepush_bcc_$(2)$(3)$(4)
+endif
+endif
+
 ifeq ($(4),)
 # ZFS does not compile against -dbg kernels because CONFIG_DEBUG_LOCK_ALLOC
 # is incompatible with CDDL, apparently (this is ./configure check)
@@ -218,21 +251,21 @@ endef
 # Debug targets only for latest stable and LTS stable
 #
 ifeq ($(ARCH),x86_64)
-$(eval $(call kernel,4.16.9,4.16.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.14.41,4.14.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.14.41,4.14.x,,-dbg))
-$(eval $(call kernel,4.14.40,4.14.x,-rt,))
-$(eval $(call kernel,4.9.100,4.9.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.4.132,4.4.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,5.0.6,5.0.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.19.33,4.19.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.19.33,4.19.x,,-dbg))
+$(eval $(call kernel,4.19.25,4.19.x,-rt,))
+$(eval $(call kernel,4.14.110,4.14.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.9.167,4.9.x,$(EXTRA),$(DEBUG)))
 
 else ifeq ($(ARCH),aarch64)
-$(eval $(call kernel,4.16.9,4.16.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.14.41,4.14.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.14.40,4.14.x,-rt,))
+$(eval $(call kernel,5.0.6,5.0.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.19.33,4.19.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.19.25,4.19.x,-rt,))
 
 else ifeq ($(ARCH),s390x)
-$(eval $(call kernel,4.16.9,4.16.x,$(EXTRA),$(DEBUG)))
-$(eval $(call kernel,4.14.41,4.14.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,5.0.6,5.0.x,$(EXTRA),$(DEBUG)))
+$(eval $(call kernel,4.19.33,4.19.x,$(EXTRA),$(DEBUG)))
 endif
 
 # Target for kernel config

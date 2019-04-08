@@ -10,12 +10,13 @@ LinuxKit, a toolkit for building custom minimal, immutable Linux distributions.
 - Completely stateless, but persistent storage can be attached
 - Easy tooling, with easy iteration
 - Built with containers, for running containers
+- Designed to create [reproducible builds](./docs/reproducible-builds.md) [WIP]
 - Designed for building and running clustered applications, including but not limited to container orchestration such as Docker or Kubernetes
 - Designed from the experience of building Docker Editions, but redesigned as a general-purpose toolkit
 - Designed to be managed by external tooling, such as [Infrakit](https://github.com/docker/infrakit) or similar tools
 - Includes a set of longer-term collaborative projects in various stages of development to innovate on kernel and userspace changes, particularly around security
 
-LinuxKit currently supports the `x86_64`, `arm64`, and `s390x` architectures on a variety of platforms, both as virtual machines and baremetal (see [below](#booting-and-testing) for details.
+LinuxKit currently supports the `x86_64`, `arm64`, and `s390x` architectures on a variety of platforms, both as virtual machines and baremetal (see [below](#booting-and-testing) for details).
 
 ## Subprojects
 
@@ -24,6 +25,7 @@ LinuxKit currently supports the `x86_64`, `arm64`, and `s390x` architectures on 
 - [linux](https://github.com/linuxkit/linux) A copy of the Linux stable tree with branches LinuxKit kernels.
 - [virtsock](https://github.com/linuxkit/virtsock) A `go` library and test utilities for `virtio` and Hyper-V sockets.
 - [rtf](https://github.com/linuxkit/rtf) A regression test framework used for the LinuxKit CI tests (and other projects).
+- [homebrew](https://github.com/linuxkit/homebrew-linuxkit) Homebrew packages for the `linuxkit` tool.
 
 ## Getting Started
 
@@ -57,8 +59,6 @@ linuxkit build linuxkit.yml
 ```
 to build the example configuration. You can also specify different output formats, eg `linuxkit build -format raw-bios linuxkit.yml` to
 output a raw BIOS bootable disk image, or `linuxkit build -format iso-efi linuxkit.yml` to output an EFI bootable ISO image. See `linuxkit build -help` for more information.
-
-Since `linuxkit build` is built around the [Moby tool](https://github.com/moby/tool) the input yml files are described in the [Moby tool documentation](https://github.com/moby/tool/blob/master/docs/yaml.md).
 
 ### Booting and Testing
 
@@ -117,7 +117,7 @@ To customise, copy or modify the [`linuxkit.yml`](linuxkit.yml) to your own `fil
 generate its specified output. You can run the output with `linuxkit run file`.
 
 The yaml file specifies a kernel and base init system, a set of containers that are built into the generated image and started at boot time. You can specify the type
-of artifact to build with the `moby` tool eg `linuxkit build -format vhd linuxkit.yml`.
+of artifact to build eg `linuxkit build -format vhd linuxkit.yml`.
 
 If you want to build your own packages, see this [document](docs/packages.md).
 
@@ -131,7 +131,7 @@ The yaml format specifies the image to be built:
 - `services` is the system services, which normally run for the whole time the system is up
 - `files` are additional files to add to the image
 
-For a more detailed overview of the options see [yaml documentation](https://github.com/moby/tool/blob/master/docs/yaml.md)
+For a more detailed overview of the options see [yaml documentation](docs/yaml.md)
 
 ## Architecture and security
 
@@ -156,7 +156,11 @@ This is an open project without fixed judgements, open to the community to set t
 
 ## Development reports
 
-There are weekly [development reports](reports/) summarizing work carried out in the week.
+There are monthly [development reports](reports/) summarising the work carried out each month.
+
+## Adopters
+
+We maintain an incomplete list of [adopters](ADOPTERS.md). Please open a PR if you are using LinuxKit in production or in your project, or both.
 
 ## FAQ
 

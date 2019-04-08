@@ -1,4 +1,4 @@
-From 0a409e272151e39e22ab8cd072a508f39e75faaf Mon Sep 17 00:00:00 2001
+From db88092c58aa4ebe598ffea65109e8f0150a2979 Mon Sep 17 00:00:00 2001
 From: Vitaly Kuznetsov <vkuznets@redhat.com>
 Date: Sun, 29 Oct 2017 12:21:09 -0700
 Subject: [PATCH 11/21] hyper-v: trace vmbus_open()
@@ -15,7 +15,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  2 files changed, 29 insertions(+)
 
 diff --git a/drivers/hv/channel.c b/drivers/hv/channel.c
-index 05964347008d..b562a7fb4c42 100644
+index e05de5032f0c..d0c115fa0b4c 100644
 --- a/drivers/hv/channel.c
 +++ b/drivers/hv/channel.c
 @@ -185,6 +185,8 @@ int vmbus_open(struct vmbus_channel *newchannel, u32 send_ringbuffer_size,
@@ -66,5 +66,5 @@ index 566ac0f2fe56..38fedb803bd8 100644
  #define TRACE_INCLUDE_PATH .
  #undef TRACE_INCLUDE_FILE
 -- 
-2.16.0
+2.21.0
 

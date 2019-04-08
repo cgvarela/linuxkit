@@ -1,4 +1,4 @@
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c as build
+FROM linuxkit/alpine:5ce235f4fb55772e7f78871a70bfe26f774fe2b0 as build
 RUN apk add \
     bc \
     dtc \

@@ -1,25 +1,25 @@
 kernel:
-  image: linuxkit/kernel:4.14.41
+  image: linuxkit/kernel:4.19.33
   cmdline: "console=ttyS0"
 init:
-  - linuxkit/init:v0.4
-  - linuxkit/runc:v0.4
-  - linuxkit/containerd:v0.4
-  - linuxkit/ca-certificates:v0.4
+  - linuxkit/init:629fdad56e62ae72bf8becf0c8a668241480d3ff
+  - linuxkit/runc:606971451ea29b4238029804ca638f9f85caf5af
+  - linuxkit/containerd:39ac21278cfcc10dbcc32ad7f5abbe820852c5bd
+  - linuxkit/ca-certificates:906c46a26fd2df271bf64c0259bf2267f7593213
 onboot:
   - name: sysctl
-    image: linuxkit/sysctl:v0.4
+    image: linuxkit/sysctl:713e535f2d4e4c74aba50cc7f73e3826b2dd3857
   - name: dhcpcd
-    image: linuxkit/dhcpcd:v0.4
+    image: linuxkit/dhcpcd:85738d3d2f152a7879e17a61444f7714b858c2ee
     command: ["/sbin/dhcpcd", "--nobackground", "-f", "/dhcpcd.conf", "-1"]
   - name: metadata
-    image: linuxkit/metadata:v0.4
+    image: linuxkit/metadata:566864a2e22e318c478ab284f5675da7a7a12f38
     command: ["/usr/bin/metadata", "openstack"]
 services:
   - name: rngd
-    image: linuxkit/rngd:v0.4
+    image: linuxkit/rngd:dc49cff2c835b196610a3f2efb585bb276658bce
   - name: sshd
-    image: linuxkit/sshd:v0.4
+    image: linuxkit/sshd:6e4740bee64bf44e9913a1db4a38b5c3a5fb6ab1
     binds:
      - /run/config/ssh/authorized_keys:/root/.ssh/authorized_keys
   - name: nginx

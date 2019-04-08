@@ -1,4 +1,4 @@
-FROM linuxkit/alpine:90571a1a9059f3bf33ca3431bc5396aa837a47d3 AS kernel-build
+FROM linuxkit/alpine:518c2ed0f398c5508969ac5e033607201fb419ed AS kernel-build
 RUN apk add \
     argp-standalone \
     automake \
@@ -15,9 +15,7 @@ RUN apk add \
     gnupg \
     installkernel \
     kmod \
-    libelf-dev \
-    libressl \
-    libressl-dev \
+    elfutils-dev \
     linux-headers \
     mpc1-dev \
     mpfr-dev \
@@ -38,12 +36,8 @@ ARG KERNEL_SERIES
 ARG EXTRA
 ARG DEBUG
 
-ENV KERNEL_SOURCE=https://www.kernel.org/pub/linux/kernel/v4.x/linux-${KERNEL_VERSION}.tar.xz
-ENV KERNEL_SHA256_SUMS=https://www.kernel.org/pub/linux/kernel/v4.x/sha256sums.asc
-ENV KERNEL_PGP2_SIGN=https://www.kernel.org/pub/linux/kernel/v4.x/linux-${KERNEL_VERSION}.tar.sign
-
-ENV WIREGUARD_VERSION=0.0.20180513
-ENV WIREGUARD_SHA256="28a15c59f6710851587ebca76a335f1aaaa077aad052732e0959f2bae9ba8d5c"
+ENV WIREGUARD_VERSION=0.0.20190227
+ENV WIREGUARD_SHA256="fcdb26fd2692d9e1dee54d14418603c38fbb973a06ce89d08fbe45292ff37f79"
 ENV WIREGUARD_URL=https://git.zx2c4.com/WireGuard/snapshot/WireGuard-${WIREGUARD_VERSION}.tar.xz
 
 # We copy the entire directory. This copies some unneeded files, but
@@ -53,7 +47,12 @@ COPY / /
 
 # Download and verify kernel
 # PGP keys: 589DA6B1 (greg@kroah.com) & 6092693E (autosigner@kernel.org) & 00411886 (torvalds@linux-foundation.org)
-RUN curl -fsSLO ${KERNEL_SHA256_SUMS} && \
+RUN KERNEL_MAJOR=$(echo ${KERNEL_VERSION} | cut -d . -f 1) && \
+    KERNEL_MAJOR=v${KERNEL_MAJOR}.x && \
+    KERNEL_SOURCE=https://www.kernel.org/pub/linux/kernel/${KERNEL_MAJOR}/linux-${KERNEL_VERSION}.tar.xz && \
+    KERNEL_SHA256_SUMS=https://www.kernel.org/pub/linux/kernel/${KERNEL_MAJOR}/sha256sums.asc && \
+    KERNEL_PGP2_SIGN=https://www.kernel.org/pub/linux/kernel/${KERNEL_MAJOR}/linux-${KERNEL_VERSION}.tar.sign && \
+    curl -fsSLO ${KERNEL_SHA256_SUMS} && \
     gpg2 -q --import keys.asc && \
     gpg2 --verify sha256sums.asc && \
     KERNEL_SHA256=$(grep linux-${KERNEL_VERSION}.tar.xz sha256sums.asc | cut -d ' ' -f 1) && \
@@ -84,6 +83,11 @@ RUN set -e && \
         done; \
     fi
 
+RUN mkdir -p /out/src
+
+# Save kernel source
+RUN tar cJf /out/src/linux.tar.xz /linux
+
 # Kernel config
 RUN case $(uname -m) in \
     x86_64) \
@@ -107,9 +111,8 @@ RUN case $(uname -m) in \
     fi && \
     make defconfig && \
     make oldconfig && \
-    if [ -z "${EXTRA}" ] && [ -z "${DEBUG}" ]; then diff .config ${KERNEL_DEF_CONF}; fi
+    if [ -z "${EXTRA}" ] && [ -z "${DEBUG}" ]; then diff -u .config ${KERNEL_DEF_CONF}; fi
 
-RUN mkdir /out
 
 # Kernel
 RUN make -j "$(getconf _NPROCESSORS_ONLN)" KCFLAGS="-fno-pie" && \
@@ -128,8 +131,9 @@ RUN make -j "$(getconf _NPROCESSORS_ONLN)" KCFLAGS="-fno-pie" && \
     ([ -n "${DEBUG}" ] && cp vmlinux /out || true)
 
 # WireGuard
-RUN curl -sSL -o /wireguard.tar.xz "${WIREGUARD_URL}" && \
+RUN curl -fsSL -o /wireguard.tar.xz "${WIREGUARD_URL}" && \
     echo "${WIREGUARD_SHA256}  /wireguard.tar.xz" | sha256sum -c - && \
+    cp /wireguard.tar.xz /out/src/ && \
     tar -C / --one-top-level=wireguard --strip-components=2 -xJf /wireguard.tar.xz "WireGuard-${WIREGUARD_VERSION}/src" && \
     make -j "$(getconf _NPROCESSORS_ONLN)" M="/wireguard" modules
 
@@ -169,22 +173,12 @@ RUN DVER=$(basename $(find /tmp/kernel-modules/lib/modules/ -mindepth 1 -maxdept
 
 RUN printf "KERNEL_SOURCE=${KERNEL_SOURCE}\n" > /out/kernel-source-info
 
-# perf
-# Skip for 4.4.x (the compile is broken and tedious to fix) and 4.9.x (the
-# compile broke with 4.9.93)
-RUN if [ "${KERNEL_SERIES}" != "4.4.x" ] && [ "${KERNEL_SERIES}" != "4.9.x" ]; then \
-       mkdir -p /build/perf && \
-       make -C tools/perf LDFLAGS=-static O=/build/perf && \
-       strip /build/perf/perf && \
-       cp /build/perf/perf /out; \
-     fi
-
 # Download Intel ucode and create a CPIO archive for it
-ENV UCODE_URL=https://downloadmirror.intel.com/27776/eng/microcode-20180425.tgz
+ENV UCODE_URL=https://downloadmirror.intel.com/28087/eng/microcode-20180807a.tgz
 RUN set -e && \
     if [ $(uname -m) == x86_64 ]; then \
         cd /ucode && \
-        curl -sSL -o microcode.tar.gz ${UCODE_URL} && \
+        curl -fsSL -o microcode.tar.gz ${UCODE_URL} && \
         md5sum -c intel-ucode-md5sums && \
         tar xf microcode.tar.gz && \
         rm -f intel-ucode/list && \

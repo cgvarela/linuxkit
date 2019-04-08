@@ -1,4 +1,4 @@
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS mirror
+FROM linuxkit/alpine:518c2ed0f398c5508969ac5e033607201fb419ed AS mirror
 
 RUN mkdir -p /out/etc/apk && cp -r /etc/apk/* /out/etc/apk/
 RUN apk add --initdb -p /out alpine-baselayout apk-tools audit busybox tini

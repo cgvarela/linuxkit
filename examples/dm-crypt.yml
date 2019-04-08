@@ -1,0 +1,43 @@
+kernel:
+  image: linuxkit/kernel:4.14.88
+  cmdline: "console=tty0 console=ttyS0"
+init:
+  - linuxkit/init:629fdad56e62ae72bf8becf0c8a668241480d3ff
+  - linuxkit/runc:606971451ea29b4238029804ca638f9f85caf5af
+  - linuxkit/containerd:39ac21278cfcc10dbcc32ad7f5abbe820852c5bd
+  - linuxkit/ca-certificates:906c46a26fd2df271bf64c0259bf2267f7593213
+onboot:
+  - name: sysctl
+    image: linuxkit/sysctl:713e535f2d4e4c74aba50cc7f73e3826b2dd3857
+  - name: dhcpcd
+    image: linuxkit/dhcpcd:85738d3d2f152a7879e17a61444f7714b858c2ee
+    command: ["/sbin/dhcpcd", "--nobackground", "-f", "/dhcpcd.conf", "-1"]
+  - name: format
+    image: linuxkit/format:ada5fd97592c33399140f5f93f517c02f55edb14
+    command: ["/usr/bin/format", "/dev/sda"]
+  - name: dm-crypt
+    image: linuxkit/dm-crypt:6ace64a97f2db77301be0c1106dd2e2ddf9e2eab
+    command: ["/usr/bin/crypto", "crypt_dev", "/dev/sda1"]
+  - name: mount
+    image: linuxkit/mount:019bc551972cf2d136b443d70b4bf94c54d0d1fe
+    command: ["/usr/bin/mountie", "/dev/mapper/crypt_dev", "/var/secure_storage"]
+  - name: bbox
+    image: busybox
+    command: ["sh", "-c", "echo 'secret things' >/var/secure_storage/secrets"]
+    binds:
+      - /var:/var
+services:
+  - name: getty
+    image: linuxkit/getty:01993189b8c583dc91cbbc7d4be131832c0fc205
+    env:
+     - INSECURE=true
+  - name: rngd
+    image: linuxkit/rngd:dc49cff2c835b196610a3f2efb585bb276658bce
+files:
+  - path: etc/dm-crypt/key
+    # the below key is just to keep the example self-contained
+    # !!! provide a proper key for production use here !!!
+    contents: "abcdefghijklmnopqrstuvwxyz123456"
+trust:
+  org:
+    - linuxkit

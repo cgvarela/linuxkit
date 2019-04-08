@@ -1,19 +1,17 @@
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS grub-build
-
+FROM linuxkit/alpine:3683c9a66cd4da40bd7d6c7da599b2dcd738b559 AS grub-build
 RUN apk add \
+  autoconf \
   automake \
-  make \
   bison \
-  gettext \
-  flex \
   gcc \
+  gettext \
   git \
-  libtool \
+  flex \
   libc-dev \
+  libtool \
   linux-headers \
-  python3 \
-
-  autoconf
+  make \
+  python3
 
 # because python is not available
 RUN ln -s python3 /usr/bin/python
@@ -40,22 +38,25 @@ RUN mkdir /grub-lib && \
     ;; \
   esac
 
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS make-img
-
-RUN \
-  apk update && apk upgrade && \
-  apk add --no-cache \
+FROM linuxkit/alpine:3683c9a66cd4da40bd7d6c7da599b2dcd738b559 AS mirror
+RUN mkdir -p /out/etc/apk && cp -r /etc/apk/* /out/etc/apk/
+RUN apk add --no-cache --initdb -p /out \
+  alpine-baselayout \
+  binutils \
+  busybox \
   dosfstools \
   libarchive-tools \
-  binutils \
   mtools \
+  qemu-img \
   sfdisk \
   sgdisk \
   xfsprogs \
-  qemu-img \
   && true
+RUN mv /out/etc/apk/repositories.upstream /out/etc/apk/repositories
 
-COPY . .
+FROM scratch
+WORKDIR /
+COPY --from=mirror /out/ /
 COPY --from=grub-build /grub-lib/BOOT*.EFI /usr/local/share/
-
+COPY . .
 ENTRYPOINT [ "/make-efi" ]

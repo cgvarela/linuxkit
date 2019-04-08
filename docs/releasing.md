@@ -113,7 +113,7 @@ cd $LK_ROOT/tools
 ../scripts/update-component-sha.sh --image linuxkit/alpine:$LK_ALPINE
 git checkout alpine/versions.aarch64 alpine/versions.s390x
 
-git commit -a -s -m "tools: Update to latest alpine base"
+git commit -a -s -m "tools: Update to the latest linuxkit/alpine"
 git push $LK_REMOTE rel_$LK_RELEASE
 
 make forcepush
@@ -151,7 +151,7 @@ Next, we update the test packages to the updated alpine base on the `x86_64` sys
 cd $LK_ROOT/test/pkg
 ../../scripts/update-component-sha.sh --image linuxkit/alpine:$LK_ALPINE
 
-git commit -a -s -m "tests: Update packages to latest alpine base"
+git commit -a -s -m "tests: Update packages to the latest linuxkit/alpine"
 git push $LK_REMOTE rel_$LK_RELEASE
 
 make push
@@ -176,19 +176,44 @@ done
 git commit -a -s -m "Update use of test packages to latest"
 ```
 
+Some tests also use `linuxkit/alpine`. Update them as well:
+
+```sh
+cd $LK_ROOT/test/cases
+../../scripts/update-component-sha.sh --image linuxkit/alpine:$LK_ALPINE
+
+git commit -a -s -m "tests: Update tests cases to the latest linuxkit/alpine"
+```
+
 ### Update packages
 
 Next, we update the LinuxKit packages. This is really the core of the
 release. The other steps above are just there to ensure consistency
 across packages.
 
+
 ```sh
 cd $LK_ROOT/pkg
 ../scripts/update-component-sha.sh --image linuxkit/alpine:$LK_ALPINE
 
-git commit -a -s -m "pkgs: Update packages to latest alpine base"
+git commit -a -s -m "pkgs: Update packages to the latest linuxkit/alpine"
 git push $LK_REMOTE rel_$LK_RELEASE
+```
 
+Most of the packages are build from `linuxkit/alpine` and source code
+in the `linuxkit` repository, but some packages wrap external
+tools. The time of a release is a good opportunity to check if there
+have been updates. Specifically:
+
+- `pkg/cadvisor`: Check for [new releases](https://github.com/google/cadvisor/releases).
+- `pkg/firmware` and `pkg/firmware-all`: Use latest commit from [here](https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git).
+- `pkg/node_exporter`: Check for [new releases](https://github.com/prometheus/node_exporter/releases).
+- Check [docker hub](https://hub.docker.com/r/library/docker/tags/) for the latest `dind` tags. and update `examples/docker.yml`, `examples/docker-for-mac.yml`, `examples/cadvisor.yml`, and `test/cases/030_security/000_docker-bench/test.yml` if necessary.
+
+The build/push the packages:
+
+```sh
+cd $LK_ROOT/pkg
 make OPTIONS="-release $LK_RELEASE" push
 ```
 
@@ -216,6 +241,7 @@ git commit -a -s -m "Update package tags to $LK_RELEASE"
 
 ### Final preparation steps
 
+- Update AUTHORS by running `./scripts/generate-authors.sh`
 - Update the `VERSION` variable in the top-level `Makefile`
 - Create an entry in `CHANGELOG.md`. Take a look at `git log v0.3..HEAD` and pick interesting updates (of course adjust `v0.3` to the previous version).
 - Create a PR with your changes.

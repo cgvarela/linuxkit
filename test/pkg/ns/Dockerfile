@@ -1,4 +1,4 @@
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS mirror
+FROM linuxkit/alpine:5ce235f4fb55772e7f78871a70bfe26f774fe2b0 AS mirror
 RUN mkdir -p /out/etc/apk && cp -r /etc/apk/* /out/etc/apk/
 RUN apk add --no-cache --initdb -p /out \
     alpine-baselayout \
@@ -8,14 +8,14 @@ RUN apk add --no-cache --initdb -p /out \
     musl
 RUN rm -rf /out/etc/apk /out/lib/apk /out/var/cache
 
-FROM linuxkit/alpine:1b05307ae8152e3d38f79e297b0632697a30c65c AS build
+FROM linuxkit/alpine:5ce235f4fb55772e7f78871a70bfe26f774fe2b0 AS build
 RUN apk add --no-cache \
     build-base \
     git \
     go \
     musl-dev
 ENV GOPATH=/go PATH=$PATH:/go/bin
-ENV VIRTSOCK_COMMIT=0416e3d85541e7a067fd000c69f50997b5d47c93
+ENV VIRTSOCK_COMMIT=f1e32d3189e0dbb81c0e752a4e214617487eb41f
 RUN git clone https://github.com/linuxkit/virtsock.git /go/src/github.com/linuxkit/virtsock && \
     cd /go/src/github.com/linuxkit/virtsock && \
     git checkout $VIRTSOCK_COMMIT && \

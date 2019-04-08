@@ -1,4 +1,4 @@
-FROM alpine:3.7 AS mirror
+FROM alpine:3.9 AS mirror
 
 # update base image
 RUN apk update && apk upgrade -a
@@ -9,8 +9,8 @@ COPY packages* /tmp/
 
 # mirror packages
 RUN cat /tmp/packages.$(uname -m) >> /tmp/packages && \
-   mkdir -p /mirror/$(uname -m) && \
-   apk fetch --recursive -o /mirror/$(uname -m) $(apk info; cat /tmp/packages)
+   mkdir -p /mirror/$(apk --print-arch) && \
+   apk fetch --recursive -o /mirror/$(apk --print-arch) $(apk info; cat /tmp/packages)
 
 # It's tricky to mix edge/testing packages which sometimes leads to dependency conflicts.
 # wireguard-tools currently is only in edge, so here we build our own package using the
@@ -22,8 +22,11 @@ RUN apk add alpine-sdk libmnl-dev curl && \
     chmod 0777 /wireguard && \
     cd /wireguard && \
     curl -fsSLo APKBUILD https://git.alpinelinux.org/cgit/aports/plain/testing/wireguard-tools/APKBUILD && \
+    curl -fsSLo alpine-compat.patch https://git.alpinelinux.org/aports/plain/testing/wireguard-tools/alpine-compat.patch && \
     su -c "abuild-keygen -a -n && abuild -r" builder && \
-    cp /home/builder/packages/$(uname -m)/wireguard-tools-[0-9]*.apk /mirror/$(uname -m)
+    cp /home/builder/packages/$(apk --print-arch)/wireguard-tools-[0-9]*.apk /mirror/$(apk --print-arch) && \
+    cp /home/builder/packages/$(apk --print-arch)/wireguard-tools-wg-[0-9]*.apk /mirror/$(apk --print-arch) && \
+    cp /home/builder/packages/$(apk --print-arch)/wireguard-tools-wg-quick-[0-9]*.apk /mirror/$(apk --print-arch)
 
 # install abuild for signing
 RUN apk add --no-cache abuild
@@ -32,19 +35,18 @@ RUN apk add --no-cache abuild
 RUN abuild-keygen -a -i -n
 
 # index the new repo
-RUN apk index --rewrite-arch $(uname -m) -o /mirror/$(uname -m)/APKINDEX.unsigned.tar.gz /mirror/$(uname -m)/*.apk
+RUN apk index --rewrite-arch $(apk --print-arch) -o /mirror/$(apk --print-arch)/APKINDEX.unsigned.tar.gz /mirror/$(apk --print-arch)/*.apk
 
 # sign the index
-RUN cp /mirror/$(uname -m)/APKINDEX.unsigned.tar.gz /mirror/$(uname -m)/APKINDEX.tar.gz
-RUN abuild-sign /mirror/$(uname -m)/APKINDEX.tar.gz
+RUN cp /mirror/$(apk --print-arch)/APKINDEX.unsigned.tar.gz /mirror/$(apk --print-arch)/APKINDEX.tar.gz
+RUN abuild-sign /mirror/$(apk --print-arch)/APKINDEX.tar.gz
 
 # set this as our repo but keep a copy of the upstream for downstream use
 RUN mv /etc/apk/repositories /etc/apk/repositories.upstream && echo "/mirror" > /etc/apk/repositories && apk update
 
 # add Go validation tools
 COPY go-compile.sh /go/bin/
-# containerd v1.1.x requires go1.10 which is currently a separate package in Alpine 3.7
-RUN apk add --no-cache git go1.10 musl-dev
+RUN apk add --no-cache git go musl-dev
 ENV GOPATH=/go PATH=$PATH:/go/bin
 RUN go get -u github.com/golang/lint/golint
 RUN go get -u github.com/gordonklaus/ineffassign
@@ -54,7 +56,7 @@ RUN go get -u github.com/LK4D4/vndr
 # Update `FROM` in `pkg/containerd/Dockerfile`, `pkg/init/Dockerfile` and
 # `test/pkg/containerd/Dockerfile` when changing this.
 ENV CONTAINERD_REPO=https://github.com/containerd/containerd.git
-ENV CONTAINERD_COMMIT=v1.1.0
+ENV CONTAINERD_COMMIT=v1.2.5
 RUN mkdir -p $GOPATH/src/github.com/containerd && \
   cd $GOPATH/src/github.com/containerd && \
   git clone https://github.com/containerd/containerd.git && \
@@ -84,7 +86,7 @@ RUN set -e && \
         cp iucode_tool /iucode_tool; \
     fi
 
-FROM alpine:3.7
+FROM alpine:3.9
 
 COPY --from=mirror /etc/apk/repositories /etc/apk/repositories
 COPY --from=mirror /etc/apk/repositories.upstream /etc/apk/repositories.upstream

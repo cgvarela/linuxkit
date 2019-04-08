@@ -1,7 +1,7 @@
-From 8be13a3a7274f4a423a7cb5a2f4d3a872990ec6f Mon Sep 17 00:00:00 2001
+From 05fadd74f68ebd51b57bf8122ae655d83780f0f9 Mon Sep 17 00:00:00 2001
 From: Dexuan Cui <decui@microsoft.com>
 Date: Sat, 23 Jul 2016 01:35:51 +0000
-Subject: [PATCH 03/12] hv_sock: introduce Hyper-V Sockets
+Subject: [PATCH 03/14] hv_sock: introduce Hyper-V Sockets
 
 Hyper-V Sockets (hv_sock) supplies a byte-stream based communication
 mechanism between the host and the guest. It's somewhat like TCP over
@@ -28,13 +28,13 @@ Origin: https://patchwork.kernel.org/patch/9244467/
  MAINTAINERS                 |    2 +
  include/linux/hyperv.h      |   13 +
  include/linux/socket.h      |    4 +-
- include/net/af_hvsock.h     |   78 +++
+ include/net/af_hvsock.h     |   78 ++
  include/uapi/linux/hyperv.h |   23 +
  net/Kconfig                 |    1 +
  net/Makefile                |    1 +
  net/hv_sock/Kconfig         |   10 +
  net/hv_sock/Makefile        |    3 +
- net/hv_sock/af_hvsock.c     | 1507 +++++++++++++++++++++++++++++++++++++++++++
+ net/hv_sock/af_hvsock.c     | 1507 +++++++++++++++++++++++++++++++++++
  10 files changed, 1641 insertions(+), 1 deletion(-)
  create mode 100644 include/net/af_hvsock.h
  create mode 100644 net/hv_sock/Kconfig
@@ -42,7 +42,7 @@ Origin: https://patchwork.kernel.org/patch/9244467/
  create mode 100644 net/hv_sock/af_hvsock.c
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 63cefa62324c..e64920219d88 100644
+index 4f559f5b3a89..3eaa1c129f7d 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
 @@ -5853,7 +5853,9 @@ F:	drivers/pci/host/pci-hyperv.c
@@ -1787,5 +1787,5 @@ index 000000000000..331d3759f5cb
 +MODULE_DESCRIPTION("Hyper-V Sockets");
 +MODULE_LICENSE("Dual BSD/GPL");
 -- 
-2.16.0
+2.21.0
 

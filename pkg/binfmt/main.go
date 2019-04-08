@@ -69,6 +69,11 @@ func binfmt(line []byte) error {
 func main() {
 	flag.Parse()
 
+	if err := syscall.Mount("binfmt_misc", mount, "binfmt_misc", 0, ""); err != nil {
+		log.Fatalf("Cannot mount binfmt_misc filesystem at %s: %v", mount, err)
+	}
+	defer syscall.Unmount(mount, 0)
+
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatalf("Cannot read directory %s: %s", dir, err)
@@ -82,6 +87,10 @@ func main() {
 		lines := bytes.Split(contents, []byte("\n"))
 		for _, line := range lines {
 			if len(line) == 0 {
+				continue
+			}
+			// ignore comments
+			if line[0] == '#' {
 				continue
 			}
 			err = binfmt(line)

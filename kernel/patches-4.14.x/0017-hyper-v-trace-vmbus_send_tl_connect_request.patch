@@ -1,4 +1,4 @@
-From d2918c923e67aa2b9478fa1a13109b5a65ab44f1 Mon Sep 17 00:00:00 2001
+From bac686d02e1f6cb849f4524cada2b8ba2d0ef2c2 Mon Sep 17 00:00:00 2001
 From: Vitaly Kuznetsov <vkuznets@redhat.com>
 Date: Sun, 29 Oct 2017 12:21:15 -0700
 Subject: [PATCH 17/21] hyper-v: trace vmbus_send_tl_connect_request()
@@ -15,7 +15,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  2 files changed, 26 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/hv/channel.c b/drivers/hv/channel.c
-index ba4b4eceb563..218d16c7fbae 100644
+index f503bd3e60b3..d2730378c0dc 100644
 --- a/drivers/hv/channel.c
 +++ b/drivers/hv/channel.c
 @@ -236,13 +236,18 @@ int vmbus_send_tl_connect_request(const uuid_le *shv_guest_servie_id,
@@ -70,5 +70,5 @@ index f0e437c3522f..5382d9630306 100644
  #define TRACE_INCLUDE_PATH .
  #undef TRACE_INCLUDE_FILE
 -- 
-2.16.0
+2.21.0
 
